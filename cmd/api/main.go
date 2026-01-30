@@ -60,6 +60,14 @@ func main() {
 
 		http.HandleFunc("/categories", h.Categories)
 		http.HandleFunc("/categories/", h.CategoryByID)
+
+		productRepo := repository.NewProductRepository(db)
+		productSvc := service.NewProductService(productRepo)
+		productHandler := handler.NewProductHandler(productSvc)
+
+		http.HandleFunc("/api/produk", productHandler.Products)
+		http.HandleFunc("/api/produk/", productHandler.ProductByID)
+
 	}
 
 	log.Println("🌐 Listening on :" + port)
