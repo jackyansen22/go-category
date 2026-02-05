@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"strconv"
-	"strings"
 
 	"github.com/jackyansen22/crud-category/internal/model"
 )
@@ -80,27 +79,29 @@ func (r *productRepository) FindByFilter(
 ) ([]model.Product, error) {
 
 	query := `
-		SELECT id, nama, harga, stok, active
+		SELECT
+			id,
+			nama,
+			harga,
+			stok,
+			active,
+			category_id
 		FROM products
 		WHERE 1=1
 	`
-
-	var args []any
-	idx := 1
+	args := []any{}
+	argPos := 1
 
 	if name != "" {
-		query += " AND LOWER(nama) LIKE $" + strconv.Itoa(idx)
-		args = append(args, "%"+strings.ToLower(name)+"%")
-		idx++
+		query += " AND LOWER(nama) LIKE LOWER($" + strconv.Itoa(argPos) + ")"
+		args = append(args, "%"+name+"%")
+		argPos++
 	}
 
 	if active != nil {
-		query += " AND active = $" + strconv.Itoa(idx)
+		query += " AND active = $" + strconv.Itoa(argPos)
 		args = append(args, *active)
-		idx++
 	}
-
-	query += " ORDER BY id"
 
 	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -117,6 +118,7 @@ func (r *productRepository) FindByFilter(
 			&p.Harga,
 			&p.Stok,
 			&p.Active,
+			&p.CategoryID, // ✅ WAJIB
 		); err != nil {
 			return nil, err
 		}
