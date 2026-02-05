@@ -41,6 +41,8 @@ func (s *productService) GetByID(ctx context.Context, id int) (*model.Product, e
 }
 
 func (s *productService) Create(ctx context.Context, p *model.Product) error {
+	// ✅ default active = true
+	p.Active = true
 	return s.repo.Create(ctx, p)
 }
 
