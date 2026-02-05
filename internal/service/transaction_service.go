@@ -10,6 +10,9 @@ import (
 
 type TransactionService interface {
 	Checkout(ctx context.Context, items []model.CheckoutItem) (*model.Transaction, error)
+
+	GetAll(ctx context.Context) ([]model.Transaction, error)
+	GetByID(ctx context.Context, id int) (*model.Transaction, error)
 }
 
 type transactionService struct {
@@ -36,4 +39,17 @@ func (s *transactionService) Checkout(
 
 	// Business orchestration delegated to repository (sql.Tx)
 	return s.repo.CreateTransaction(ctx, items)
+}
+
+func (s *transactionService) GetAll(
+	ctx context.Context,
+) ([]model.Transaction, error) {
+	return s.repo.FindAll(ctx)
+}
+
+func (s *transactionService) GetByID(
+	ctx context.Context,
+	id int,
+) (*model.Transaction, error) {
+	return s.repo.FindByID(ctx, id)
 }

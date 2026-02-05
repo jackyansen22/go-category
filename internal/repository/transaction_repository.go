@@ -14,6 +14,9 @@ type TransactionRepository interface {
 		ctx context.Context,
 		items []model.CheckoutItem,
 	) (*model.Transaction, error)
+
+	FindAll(ctx context.Context) ([]model.Transaction, error)
+	FindByID(ctx context.Context, id int) (*model.Transaction, error)
 }
 
 type transactionRepository struct {
@@ -135,4 +138,89 @@ func (r *transactionRepository) CreateTransaction(
 		TotalAmount: totalAmount,
 		Details:     details,
 	}, nil
+}
+
+func (r *transactionRepository) FindAll(
+	ctx context.Context,
+) ([]model.Transaction, error) {
+
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT id, total_amount, created_at
+		FROM transactions
+		ORDER BY created_at DESC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var transactions []model.Transaction
+	for rows.Next() {
+		var t model.Transaction
+		if err := rows.Scan(
+			&t.ID,
+			&t.TotalAmount,
+			&t.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		transactions = append(transactions, t)
+	}
+
+	return transactions, nil
+}
+
+func (r *transactionRepository) FindByID(
+	ctx context.Context,
+	id int,
+) (*model.Transaction, error) {
+
+	var t model.Transaction
+	err := r.db.QueryRowContext(ctx, `
+		SELECT id, total_amount, created_at
+		FROM transactions
+		WHERE id = $1
+	`, id).Scan(&t.ID, &t.TotalAmount, &t.CreatedAt)
+
+	if err == sql.ErrNoRows {
+		return nil, errors.New("transaction not found")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT
+			td.id,
+			td.transaction_id,
+			td.product_id,
+			p.nama,
+			td.quantity,
+			td.subtotal
+		FROM transaction_details td
+		JOIN products p ON p.id = td.product_id
+		WHERE td.transaction_id = $1
+		ORDER BY td.id
+	`, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var d model.TransactionDetail
+		if err := rows.Scan(
+			&d.ID,
+			&d.TransactionID,
+			&d.ProductID,
+			&d.ProductName,
+			&d.Quantity,
+			&d.Subtotal,
+		); err != nil {
+			return nil, err
+		}
+		t.Details = append(t.Details, d)
+	}
+
+	return &t, nil
 }

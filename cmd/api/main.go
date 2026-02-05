@@ -80,6 +80,10 @@ func main() {
 		// POST /api/checkout
 		http.HandleFunc("/checkout", transactionHandler.Checkout)
 
+		// Transactions (read only)
+		http.HandleFunc("/transactions", transactionHandler.GetAll)
+		http.HandleFunc("/transactions/", transactionHandler.GetByID)
+
 	}
 
 	log.Println("🌐 Listening on :" + port)
