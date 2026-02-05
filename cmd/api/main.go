@@ -70,6 +70,16 @@ func main() {
 		http.HandleFunc("/product", productHandler.Products)
 		http.HandleFunc("/product/", productHandler.ProductByID)
 
+		// =====================
+		// Transaction (Checkout)
+		// =====================
+		transactionRepo := repository.NewTransactionRepository(db)
+		transactionService := service.NewTransactionService(transactionRepo)
+		transactionHandler := handler.NewTransactionHandler(transactionService)
+
+		// POST /api/checkout
+		http.HandleFunc("/checkout", transactionHandler.Checkout)
+
 	}
 
 	log.Println("🌐 Listening on :" + port)
