@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jackyansen22/crud-category/internal/model"
 )
@@ -23,16 +24,6 @@ type transactionRepository struct {
 	db *sql.DB
 }
 
-func NewTransactionRepository(db *sql.DB) TransactionRepository {
-	return &transactionRepository{db: db}
-}
-
-// =====================================================
-// CREATE TRANSACTION (CHECKOUT)
-// - atomic
-// - row locking (FOR UPDATE)
-// - stock validation
-// =====================================================
 func (r *transactionRepository) CreateTransaction(
 	ctx context.Context,
 	items []model.CheckoutItem,
@@ -47,6 +38,9 @@ func (r *transactionRepository) CreateTransaction(
 	totalAmount := 0
 	details := make([]model.TransactionDetail, 0)
 
+	// ==========================
+	// LOOP ITEMS
+	// ==========================
 	for _, item := range items {
 		var (
 			productName  string
@@ -101,41 +95,60 @@ func (r *transactionRepository) CreateTransaction(
 		return nil, errors.New("total amount must be greater than zero")
 	}
 
-	var transactionID int
+	// ==========================
+	// INSERT TRANSACTION (HEADER)
+	// ==========================
+	var (
+		transactionID int
+		createdAt     time.Time
+	)
+
 	err = tx.QueryRowContext(ctx, `
 		INSERT INTO transactions (total_amount)
 		VALUES ($1)
-		RETURNING id
-	`, totalAmount).Scan(&transactionID)
+		RETURNING id, created_at
+	`, totalAmount).Scan(&transactionID, &createdAt)
 	if err != nil {
 		return nil, err
 	}
 
+	// ==========================
+	// INSERT DETAILS
+	// ==========================
 	for i := range details {
 		details[i].TransactionID = transactionID
 
-		_, err = tx.ExecContext(ctx, `
+		err = tx.QueryRowContext(ctx, `
 			INSERT INTO transaction_details
 				(transaction_id, product_id, quantity, subtotal)
 			VALUES ($1, $2, $3, $4)
+			RETURNING id
 		`,
 			transactionID,
 			details[i].ProductID,
 			details[i].Quantity,
 			details[i].Subtotal,
-		)
+		).Scan(&details[i].ID)
+
 		if err != nil {
 			return nil, err
 		}
 	}
 
+	// ==========================
+	// COMMIT
+	// ==========================
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 
+	// ==========================
+	// RESPONSE
+	// ==========================
 	return &model.Transaction{
 		ID:          transactionID,
 		TotalAmount: totalAmount,
+		CreatedAt:   createdAt,
 		Details:     details,
 	}, nil
 }
