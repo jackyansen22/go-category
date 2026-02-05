@@ -65,8 +65,10 @@ func main() {
 		productSvc := service.NewProductService(productRepo)
 		productHandler := handler.NewProductHandler(productSvc)
 
-		http.HandleFunc("/api/produk", productHandler.Products)
-		http.HandleFunc("/api/produk/", productHandler.ProductByID)
+		//http.HandleFunc("/api/produk", productHandler.Products)
+		//http.HandleFunc("/api/produk/", productHandler.ProductByID)
+		http.HandleFunc("/product", productHandler.Products)
+		http.HandleFunc("/product/", productHandler.ProductByID)
 
 	}
 

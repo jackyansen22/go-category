@@ -9,10 +9,19 @@ import (
 
 type ProductService interface {
 	GetAll(ctx context.Context) ([]model.Product, error)
+	Search(ctx context.Context, name string, active *bool) ([]model.Product, error)
 	GetByID(ctx context.Context, id int) (*model.Product, error)
 	Create(ctx context.Context, p *model.Product) error
 	Update(ctx context.Context, p *model.Product) error
 	Delete(ctx context.Context, id int) error
+}
+
+func (s *productService) Search(
+	ctx context.Context,
+	name string,
+	active *bool,
+) ([]model.Product, error) {
+	return s.repo.FindByFilter(ctx, name, active)
 }
 
 type productService struct {
