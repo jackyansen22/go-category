@@ -24,6 +24,10 @@ type transactionRepository struct {
 	db *sql.DB
 }
 
+func NewTransactionRepository(db *sql.DB) TransactionRepository {
+	return &transactionRepository{db: db}
+}
+
 func (r *transactionRepository) CreateTransaction(
 	ctx context.Context,
 	items []model.CheckoutItem,
