@@ -31,9 +31,18 @@ func NewProductRepository(db *sql.DB) ProductRepository {
 // =====================================================
 // GET ALL PRODUCTS
 // =====================================================
-func (r *productRepository) FindAll(ctx context.Context) ([]model.Product, error) {
+func (r *productRepository) FindAll(
+	ctx context.Context,
+) ([]model.Product, error) {
+
 	rows, err := r.db.QueryContext(ctx, `
-		SELECT id, nama, harga, stok, active
+		SELECT
+			id,
+			nama,
+			harga,
+			stok,
+			active,
+			category_id
 		FROM products
 		ORDER BY id
 	`)
@@ -51,6 +60,7 @@ func (r *productRepository) FindAll(ctx context.Context) ([]model.Product, error
 			&p.Harga,
 			&p.Stok,
 			&p.Active,
+			&p.CategoryID, // ✅ WAJIB
 		); err != nil {
 			return nil, err
 		}
