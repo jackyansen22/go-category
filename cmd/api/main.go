@@ -84,6 +84,14 @@ func main() {
 		http.HandleFunc("/transactions", transactionHandler.GetAll)
 		http.HandleFunc("/transactions/", transactionHandler.GetByID)
 
+		// Report
+		reportRepo := repository.NewReportRepository(db)
+		reportService := service.NewReportService(reportRepo)
+		reportHandler := handler.NewReportHandler(reportService)
+
+		http.HandleFunc("/report/hari-ini", reportHandler.Today)
+		http.HandleFunc("/report", reportHandler.ByRange)
+
 	}
 
 	log.Println("🌐 Listening on :" + port)
