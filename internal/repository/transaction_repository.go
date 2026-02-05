@@ -157,6 +157,10 @@ func (r *transactionRepository) FindAll(
 	var transactions []model.Transaction
 	for rows.Next() {
 		var t model.Transaction
+
+		// 🔑 INIT SLICE → JSON jadi []
+		t.Details = []model.TransactionDetail{}
+
 		if err := rows.Scan(
 			&t.ID,
 			&t.TotalAmount,
@@ -164,6 +168,7 @@ func (r *transactionRepository) FindAll(
 		); err != nil {
 			return nil, err
 		}
+
 		transactions = append(transactions, t)
 	}
 
