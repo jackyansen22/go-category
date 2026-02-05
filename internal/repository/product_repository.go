@@ -17,6 +17,7 @@ type ProductRepository interface {
 	Create(ctx context.Context, p *model.Product) error
 	Update(ctx context.Context, p *model.Product) error
 	Delete(ctx context.Context, id int) error
+	CategoryExists(ctx context.Context, categoryID int) bool
 }
 
 type productRepository struct {
@@ -118,19 +119,32 @@ func (r *productRepository) FindByFilter(
 // =====================================================
 // GET PRODUCT BY ID
 // =====================================================
-func (r *productRepository) FindByID(ctx context.Context, id int) (*model.Product, error) {
-	var p model.Product
+func (r *productRepository) FindByID(
+	ctx context.Context,
+	id int,
+) (*model.Product, error) {
 
+	var p model.Product
 	err := r.db.QueryRowContext(ctx, `
-		SELECT id, nama, harga, stok, active
-		FROM products
-		WHERE id = $1
+		SELECT
+			p.id,
+			p.nama,
+			p.harga,
+			p.stok,
+			p.active,
+			p.category_id,
+			c.name
+		FROM products p
+		JOIN categories c ON c.id = p.category_id
+		WHERE p.id = $1
 	`, id).Scan(
 		&p.ID,
 		&p.Nama,
 		&p.Harga,
 		&p.Stok,
 		&p.Active,
+		&p.CategoryID,
+		&p.CategoryName,
 	)
 
 	if err == sql.ErrNoRows {
@@ -146,16 +160,21 @@ func (r *productRepository) FindByID(ctx context.Context, id int) (*model.Produc
 // =====================================================
 // CREATE PRODUCT
 // =====================================================
-func (r *productRepository) Create(ctx context.Context, p *model.Product) error {
+func (r *productRepository) Create(
+	ctx context.Context,
+	p *model.Product,
+) error {
 	return r.db.QueryRowContext(ctx, `
-		INSERT INTO products (nama, harga, stok, active)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO products
+			(nama, harga, stok, active, category_id)
+		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id
 	`,
 		p.Nama,
 		p.Harga,
 		p.Stok,
 		p.Active,
+		p.CategoryID,
 	).Scan(&p.ID)
 }
 
@@ -209,4 +228,23 @@ func (r *productRepository) Delete(ctx context.Context, id int) error {
 	}
 
 	return nil
+}
+
+func (r *productRepository) CategoryExists(
+	ctx context.Context,
+	categoryID int,
+) bool {
+
+	var exists bool
+	err := r.db.QueryRowContext(ctx, `
+		SELECT EXISTS (
+			SELECT 1 FROM categories WHERE id = $1
+		)
+	`, categoryID).Scan(&exists)
+
+	if err != nil {
+		return false
+	}
+
+	return exists
 }

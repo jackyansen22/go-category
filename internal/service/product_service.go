@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 
 	"github.com/jackyansen22/crud-category/internal/model"
 	"github.com/jackyansen22/crud-category/internal/repository"
@@ -40,9 +41,23 @@ func (s *productService) GetByID(ctx context.Context, id int) (*model.Product, e
 	return s.repo.FindByID(ctx, id)
 }
 
-func (s *productService) Create(ctx context.Context, p *model.Product) error {
-	// ✅ default active = true
+func (s *productService) Create(
+	ctx context.Context,
+	p *model.Product,
+) error {
+
+	// default active
 	p.Active = true
+
+	if p.CategoryID == 0 {
+		return errors.New("category_id is required")
+	}
+
+	// ✅ VALIDASI FK DI SERVICE
+	if !s.repo.CategoryExists(ctx, p.CategoryID) {
+		return errors.New("category not found")
+	}
+
 	return s.repo.Create(ctx, p)
 }
 
